@@ -3,6 +3,9 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import requests
 from openai import OpenAI
+from gpt_summary import generate_gpt_summary
+
+
 
 # Lokales .env laden, falls vorhanden
 if os.path.exists(".env"):
@@ -184,13 +187,14 @@ def main():
     areas    = filter_by_created_time(all_areas, yesterday_str)
 
     summary = generate_gpt_summary(
-        tasks_created=tasks,
-        notes_created=notes,
-        all_tasks=all_tasks,
-        all_projects=all_projects,
-        all_areas=all_areas,
-        date_str=yesterday_str
-    )
+    tasks_created=tasks,
+    notes_created=notes,
+    all_tasks=all_tasks,
+    all_projects=all_projects,
+    all_areas=all_areas,
+    date_str=yesterday_str
+)
+
 
     create_journal_entry(yesterday_str, tasks, notes, projects, areas, summary)
 
