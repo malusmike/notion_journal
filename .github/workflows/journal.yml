@@ -32,10 +32,8 @@ jobs:
           DB_AREAS: ${{ secrets.DB_AREAS }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-   - name: Upload Debug Log
-  uses: actions/upload-artifact@v4
-  with:
-    name: journal_debug
-    path: journal_debug.txt
-
-
+      - name: Upload Debug Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: journal_debug
+          path: journal_debug.txt
