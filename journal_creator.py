@@ -105,32 +105,33 @@ def generate_gpt_summary(tasks_created, notes_created, all_tasks, all_projects, 
     projects_edited = filter_by_last_edited_time(all_projects, date_str)
     areas_edited    = filter_by_last_edited_time(all_areas, date_str)
 
-    prompt = f"""Erstelle eine strukturierte Zusammenfassung der Arbeitsaktivität vom {date_str}. 
-Nutze klare, gegliederte Stichpunkte und leite sinnvolle Learnings oder Empfehlungen ab.
+    tasks_inbox = [t for t in tasks_created if not t["properties"].get("Projects", {}).get("relation") and not t["properties"].get("Areas/Resources", {}).get("relation")]
 
-Berücksichtige folgende Quellen:
+    prompt = f"""
+Du bist ein präziser Analyst, der die gestrigen Aktivitäten von Michael nach dem PARA-System zusammenfasst.
 
-🔧 Neu erstellte Aufgaben:
-{[get_title_from_item(t) for t in tasks_created]}
+Datum: {date_str}
 
-🗒️ Erstellte Notizen:
-{[get_title_from_item(n) for n in notes_created]}
+Zähle nicht einfach alle Titel auf. Strukturiere die Erkenntnisse stattdessen in folgenden Punkten:
+- Womit hat sich Michael gestern konkret beschäftigt? (z. B. “Mehrere Tasks zur Automatisierung gelöst”)
+- Gab es einen thematischen Schwerpunkt?
+- Gab es Inbox-Tasks ohne Bezug zu Projekten oder Areas?
+- Gibt es Learnings oder Empfehlungen aus dem Tag?
 
-🛠️ Gestern bearbeitete Aufgaben:
-{[get_title_from_item(t) for t in tasks_edited]}
+🆕 Neue Tasks: {len(tasks_created)}
+📓 Neue Notizen: {len(notes_created)}
+📂 Projekte (bearbeitet): {[get_title_from_item(p) for p in projects_edited]}
+📚 Areas/Resources (bearbeitet): {[get_title_from_item(a) for a in areas_edited]}
+📥 Inbox-Tasks (ohne Relation): {[get_title_from_item(t) for t in tasks_inbox]}
 
-📁 Gestern bearbeitete Projekte:
-{[get_title_from_item(p) for p in projects_edited]}
-
-🏷️ Gestern bearbeitete Areas/Resources:
-{[get_title_from_item(a) for a in areas_edited]}
+Verfasse die Antwort als strukturierten Fließtext mit einem Abschnitt **"Learnings und Empfehlungen"** am Ende.
 """
 
     try:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
+            temperature=0.6,
             max_tokens=800,
         )
         return response.choices[0].message.content.strip()
