@@ -23,16 +23,13 @@ HEADERS = {
 
 openai.api_key = OPENAI_API_KEY
 
-def query_notion_database(db_id, filter_body):
+def query_notion_database(db_id, filter_body=None):
     url = f"https://api.notion.com/v1/databases/{db_id}/query"
-    response = requests.post(url, headers=HEADERS, json={"filter": filter_body})
+    payload = {"page_size": 100}
+    if filter_body:
+        payload["filter"] = filter_body
+    response = requests.post(url, headers=HEADERS, json=payload)
     return response.json()
-
-def extract_relation_names(page, property_name):
-    try:
-        return [entry["name"] for entry in page["properties"][property_name]["multi_select"]]
-    except:
-        return []
 
 def generate_gpt_summary(tasks_created, notes_created, all_tasks, all_projects, all_areas, date_str):
     try:
@@ -47,13 +44,12 @@ def generate_gpt_summary(tasks_created, notes_created, all_tasks, all_projects, 
         ]
 
         num_tasks_edited = len(edited_tasks)
-
         projects_seen = set()
         areas_seen = set()
         inbox_tasks = 0
 
         for task in edited_tasks:
-            props = task["properties"]
+            props = task.get("properties", {})
             proj = props.get("Projects", {}).get("relation", [])
             area = props.get("Areas/Resources", {}).get("relation", [])
             if not proj and not area:
@@ -91,16 +87,13 @@ Formuliere Learnings und Empfehlungen basierend auf dieser Aktivität.
         return response.choices[0].message["content"].strip()
 
     except Exception as e:
-        print(f"Fehler bei GPT-Zusammenfassung: {e}")
-        return "GPT-Zusammenfassung konnte nicht erstellt werden."
-
+        return f"GPT-Zusammenfassung konnte nicht erstellt werden. Fehler: {e}"
 
 def main():
     dubai_tz = timezone(timedelta(hours=4))
     yesterday = datetime.now(dubai_tz).date() - timedelta(days=1)
     date_str = yesterday.strftime("%Y-%m-%d")
 
-    # Filter für erstellte Tasks & Notizen
     created_filter = {
         "property": "Created time",
         "date": {
@@ -110,25 +103,18 @@ def main():
 
     tasks_created = query_notion_database(DB_TASKS, created_filter).get("results", [])
     notes_created = query_notion_database(DB_NOTIZEN, created_filter).get("results", [])
+    all_tasks = query_notion_database(DB_TASKS).get("results", [])
+    all_projects = query_notion_database(DB_PROJECTS).get("results", [])
+    all_areas = query_notion_database(DB_AREAS).get("results", [])
 
-    # Für GPT-Auswertung: Alle Tasks abrufen
-    all_tasks = query_notion_database(DB_TASKS, {"timestamp": "last_edited_time", "created_time": {}}).get("results", [])
-
-    # Projekte und Areas abrufen
-    all_projects = query_notion_database(DB_PROJECTS, {}).get("results", [])
-    all_areas = query_notion_database(DB_AREAS, {}).get("results", [])
-
-    # GPT Summary erzeugen
     summary = generate_gpt_summary(tasks_created, notes_created, all_tasks, all_projects, all_areas, date_str)
 
-    # Debug speichern
     with open("journal_debug.txt", "w", encoding="utf-8") as f:
         f.write("DEBUG - Tasks created: " + str(len(tasks_created)) + "\n")
         f.write("DEBUG - Notes created: " + str(len(notes_created)) + "\n")
         f.write("DEBUG - Tasks total: " + str(len(all_tasks)) + "\n")
         f.write("DEBUG - Summary: " + summary + "\n")
 
-    # Neuen Journaleintrag erstellen
     payload = {
         "parent": { "database_id": DB_JOURNAL },
         "properties": {
@@ -173,7 +159,6 @@ def main():
         print(response.text)
     else:
         print("✅ Journal erfolgreich erstellt.")
-
 
 if __name__ == "__main__":
     main()
