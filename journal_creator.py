@@ -1,19 +1,18 @@
 import os
-from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
 import requests
-from openai import OpenAI
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import openai
+import json
 
-# .env laden (nur lokal erforderlich)
 load_dotenv()
 
-# Konfig
-NOTION_TOKEN   = os.getenv("NOTION_TOKEN")
-DB_TASKS       = os.getenv("DB_TASKS")
-DB_JOURNAL     = os.getenv("DB_JOURNAL")
-DB_NOTIZEN     = os.getenv("DB_NOTIZEN")
-DB_PROJECTS    = os.getenv("DB_PROJECTS")
-DB_AREAS       = os.getenv("DB_AREAS")
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+DB_TASKS = os.getenv("DB_TASKS")
+DB_NOTIZEN = os.getenv("DB_NOTIZEN")
+DB_JOURNAL = os.getenv("DB_JOURNAL")
+DB_PROJECTS = os.getenv("DB_PROJECTS")
+DB_AREAS = os.getenv("DB_AREAS")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 HEADERS = {
@@ -22,121 +21,74 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai.api_key = OPENAI_API_KEY
 
-def query_notion_database(db_id, filter_body=None):
-    url = f"https://api.notion.com/v1/databases/{db_id}/query"
-    payload = {"page_size": 100}
-    if filter_body:
-        payload["filter"] = filter_body
-    response = requests.post(url, headers=HEADERS, json=payload)
-    return response.json()
+def get_yesterday():
+    return datetime.utcnow().date() - timedelta(days=1)
 
-def generate_gpt_summary(tasks_created, notes_created, all_tasks, date_str):
-    try:
-        yesterday = datetime.utcnow().date() - timedelta(days=1)
-        tasks_edited = [
-            t for t in all_tasks
-            if "last_edited_time" in t and
-               datetime.fromisoformat(t["last_edited_time"].replace("Z", "+00:00")).date() == yesterday
-        ]
+def query_database(database_id):
+    url = f"https://api.notion.com/v1/databases/{database_id}/query"
+    response = requests.post(url, headers=HEADERS)
+    response.raise_for_status()
+    return response.json().get("results", [])
 
-        inbox_count = 0
-        seen_projects = set()
-        seen_areas = set()
+def filter_by_created_time(entries, target_date):
+    return [
+        entry for entry in entries
+        if entry.get("created_time", "").startswith(target_date)
+    ]
 
-        for t in tasks_edited:
-            props = t.get("properties", {})
-            proj = props.get("Projects", {}).get("relation", [])
-            area = props.get("Areas/Resources", {}).get("relation", [])
-            if not proj and not area:
-                inbox_count += 1
-            seen_projects.update(p.get("id") for p in proj)
-            seen_areas.update(a.get("id") for a in area)
+def extract_linked_ids(entries):
+    return [entry["id"] for entry in entries]
 
-        prompt = f"""Heute ist der {date_str}. Erstelle eine produktive, professionelle Tageszusammenfassung im Sinne des PARA-Systems.
-
-Folgende Aktivität liegt vor:
-
-- Es wurden {len(tasks_created)} neue Tasks erstellt.
-- Es wurden {len(notes_created)} neue Notizen erstellt.
-- Es wurden {len(tasks_edited)} Tasks am Vortag bearbeitet.
-- Davon waren {inbox_count} Inbox-Tasks (ohne Project/Area).
-- Betroffene Projects (IDs): {list(seen_projects)}
-- Betroffene Areas/Resources (IDs): {list(seen_areas)}
-
-Analysiere den inhaltlichen Fokus, leite daraus mögliche Schwerpunkte und Learnings ab - keine Aufzählung einzelner Titel."""
-
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "Du bist ein professioneller Produktivitätscoach."},
-                {"role": "user", "content": prompt.strip()}
-            ],
-            temperature=0.6,
-            max_tokens=800
-        )
-        return response.choices[0].message.content.strip()
-
-    except Exception as e:
-        return f"GPT-Zusammenfassung konnte nicht erstellt werden: {e}"
-
-def main():
-    dubai_tz = timezone(timedelta(hours=4))
-    yesterday = datetime.now(dubai_tz).date() - timedelta(days=1)
-    date_str = yesterday.strftime("%Y-%m-%d")
-
-    filter_created = {
-        "property": "Created time",
-        "date": { "equals": yesterday.isoformat() }
-    }
-
-    tasks_created = query_notion_database(DB_TASKS, filter_created).get("results", [])
-    notes_created = query_notion_database(DB_NOTIZEN, filter_created).get("results", [])
-    all_tasks = query_notion_database(DB_TASKS).get("results", [])
-
-    summary = generate_gpt_summary(tasks_created, notes_created, all_tasks, date_str)
-
-    with open("journal_debug.txt", "w", encoding="utf-8") as f:
-        f.write(f"DEBUG - Tasks created: {len(tasks_created)}\n")
-        f.write(f"DEBUG - Notes created: {len(notes_created)}\n")
-        f.write(f"DEBUG - Tasks total: {len(all_tasks)}\n")
-        f.write(f"DEBUG - Summary: {summary}\n")
-
+def create_journal_entry(date_str, summary, task_ids, note_ids, project_ids, area_ids):
+    url = "https://api.notion.com/v1/pages"
     payload = {
         "parent": { "database_id": DB_JOURNAL },
         "properties": {
-            "Name": {
-                "title": [{"text": {"content": f"Journal: {date_str}"}}]
-            },
-            "Date": {
-                "date": { "start": yesterday.isoformat() }
-            },
-            "Tasks": {
-                "relation": [{"id": t["id"]} for t in tasks_created]
-            },
-            "Notes": {
-                "relation": [{"id": n["id"]} for n in notes_created]
-            }
-        },
-        "children": [{
-            "object": "block",
-            "type": "paragraph",
-            "paragraph": {
-                "rich_text": [{
-                    "type": "text",
-                    "text": { "content": summary }
-                }]
-            }
-        }]
+            "Name": { "title": [{ "text": { "content": f"Journal: {date_str}" } }] },
+            "Date": { "date": { "start": date_str } },
+            "Summary": { "rich_text": [{ "text": { "content": summary } }] },
+            "Tasks": { "relation": [{"id": id} for id in task_ids] },
+            "Notes": { "relation": [{"id": id} for id in note_ids] },
+            "Projects": { "relation": [{"id": id} for id in project_ids] },
+            "Areas/Resources": { "relation": [{"id": id} for id in area_ids] }
+        }
     }
-
-    res = requests.post("https://api.notion.com/v1/pages", headers=HEADERS, json=payload)
-    if res.status_code != 200:
-        print("❌ Fehler beim Erstellen:", res.status_code)
-        print(res.text)
+    response = requests.post(url, headers=HEADERS, json=payload)
+    if response.status_code != 200:
+        print("❌ Fehler beim Erstellen des Journals:", response.text)
     else:
-        print("✅ Journal erfolgreich erstellt.")
+        print("✅ Journaleintrag erfolgreich erstellt")
+
+def main():
+    yesterday = get_yesterday()
+    yesterday_str = yesterday.isoformat()
+
+    all_tasks = query_database(DB_TASKS)
+    all_notes = query_database(DB_NOTIZEN)
+    all_projects = query_database(DB_PROJECTS)
+    all_areas = query_database(DB_AREAS)
+
+    tasks = filter_by_created_time(all_tasks, yesterday_str)
+    notes = filter_by_created_time(all_notes, yesterday_str)
+
+    task_ids = extract_linked_ids(tasks)
+    note_ids = extract_linked_ids(notes)
+    project_ids = extract_linked_ids(all_projects)
+    area_ids = extract_linked_ids(all_areas)
+
+    summary = f"Zusammenfassung der Arbeit vom {yesterday.strftime('%d. %B %Y')}:"
+
+    if not task_ids and not note_ids:
+        summary += "\n- Es wurden keine Tasks oder Notizen erstellt."
+    else:
+        if task_ids:
+            summary += f"\n- Insgesamt {len(task_ids)} neue Task(s)."
+        if note_ids:
+            summary += f"\n- Insgesamt {len(note_ids)} neue Notiz(en)."
+
+    create_journal_entry(yesterday_str, summary, task_ids, note_ids, project_ids, area_ids)
 
 if __name__ == "__main__":
     main()
