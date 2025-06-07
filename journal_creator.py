@@ -4,11 +4,11 @@ from dotenv import load_dotenv
 import requests
 import openai
 
-# 📦 Lokales .env nur bei Bedarf laden
+# Lokales .env nur bei Bedarf laden
 if os.path.exists(".env"):
     load_dotenv()
 
-# 🔐 Secrets / Umgebungsvariablen
+# Umgebungsvariablen laden
 NOTION_TOKEN   = os.getenv("NOTION_TOKEN")
 DB_TASKS       = os.getenv("DB_TASKS")
 DB_JOURNAL     = os.getenv("DB_JOURNAL")
@@ -29,6 +29,12 @@ DEBUG_LOG_FILE = "journal_debug.txt"
 def log_debug(text):
     with open(DEBUG_LOG_FILE, "a", encoding="utf-8") as f:
         f.write(text + "\n")
+
+def get_title_from_item(item):
+    try:
+        return item["properties"]["Name"]["title"][0]["text"]["content"]
+    except (KeyError, IndexError, TypeError):
+        return "(kein Titel)"
 
 def compute_yesterday():
     now = datetime.now(timezone.utc) + timedelta(hours=4)  # Dubai-Zeit
@@ -59,7 +65,7 @@ def filter_by_created_time(items, date_str):
     log_debug(f"📦 Objekte insgesamt geladen: {len(items)}")
 
     for item in items:
-        name = item.get("properties", {}).get("Name", {}).get("title", [{}])[0].get("text", {}).get("content", "(kein Titel)")
+        name = get_title_from_item(item)
         created_raw = item.get("created_time")
         if created_raw:
             created = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
@@ -108,7 +114,6 @@ def create_journal_entry(date_str, tasks, notes, projects, areas, summary):
         }
     }
 
-    # 🔍 Logge API-Call
     log_debug("📤 Request Payload an Notion:")
     log_debug(str(payload))
     response = requests.post(url, headers=HEADERS, json=payload)
