@@ -2,19 +2,19 @@ import os
 import requests
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 
-# .env nur lokal notwendig
+# 🔐 .env lokal laden (wirkt nicht in GitHub Actions, dort via Secrets)
 load_dotenv()
 
-# Secrets (aus .env oder GitHub Actions)
-NOTION_TOKEN   = os.getenv("NOTION_TOKEN")
-DB_TASKS       = os.getenv("DB_TASKS")
-DB_JOURNAL     = os.getenv("DB_JOURNAL")
-DB_NOTES       = os.getenv("DB_NOTES")  # Achtung: NOTIZEN = NOTES hier
-DB_PROJECTS    = os.getenv("DB_PROJECTS")
-DB_AREAS       = os.getenv("DB_AREAS")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Umgebungsvariablen
+NOTION_TOKEN     = os.getenv("NOTION_TOKEN")
+DB_TASKS         = os.getenv("DB_TASKS")
+DB_JOURNAL       = os.getenv("DB_JOURNAL")
+DB_NOTIZEN       = os.getenv("DB_NOTIZEN")
+DB_PROJECTS      = os.getenv("DB_PROJECTS")
+DB_AREAS         = os.getenv("DB_AREAS")
+OPENAI_API_KEY   = os.getenv("OPENAI_API_KEY")
 
 HEADERS = {
     "Authorization": f"Bearer {NOTION_TOKEN}",
@@ -22,8 +22,7 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-openai.api_key = OPENAI_API_KEY
-
+client = OpenAI(api_key=OPENAI_API_KEY)
 DEBUG_LOG = "journal_debug.txt"
 open(DEBUG_LOG, "w").write(f"# Journal Debug vom {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
 
@@ -120,14 +119,14 @@ Sprache: Deutsch. Stil: professionell & fokussiert.
 """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Du bist ein präziser Analyse-Assistent."},
                 {"role": "user", "content": prompt}
             ]
         )
-        return response.choices[0].message["content"].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         return f"[Fehler bei GPT-Zusammenfassung: {e}]"
 
@@ -163,7 +162,7 @@ def main():
     all_tasks = query_all_items(DB_TASKS)
     tasks = filter_by_edited_time(all_tasks, date_str)
 
-    all_notes = query_all_items(DB_NOTES)
+    all_notes = query_all_items(DB_NOTIZEN)
     notes = filter_by_created_time(all_notes, date_str)
 
     project_ids = extract_related_ids(tasks, "Projects")
