@@ -2,15 +2,27 @@ import os
 import requests
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
+import openai
 
+# .env nur lokal notwendig
 load_dotenv()
 
-NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+# Secrets (aus .env oder GitHub Actions)
+NOTION_TOKEN   = os.getenv("NOTION_TOKEN")
+DB_TASKS       = os.getenv("DB_TASKS")
+DB_JOURNAL     = os.getenv("DB_JOURNAL")
+DB_NOTES       = os.getenv("DB_NOTES")  # Achtung: NOTIZEN = NOTES hier
+DB_PROJECTS    = os.getenv("DB_PROJECTS")
+DB_AREAS       = os.getenv("DB_AREAS")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 HEADERS = {
     "Authorization": f"Bearer {NOTION_TOKEN}",
     "Notion-Version": "2022-06-28",
     "Content-Type": "application/json"
 }
+
+openai.api_key = OPENAI_API_KEY
 
 DEBUG_LOG = "journal_debug.txt"
 open(DEBUG_LOG, "w").write(f"# Journal Debug vom {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
@@ -85,11 +97,8 @@ def extract_related_ids(tasks, key):
     return list(ids)
 
 def generate_summary(date_str, tasks, notes, projects, areas):
-    if not os.getenv("OPENAI_API_KEY"):
+    if not OPENAI_API_KEY:
         return f"Tageszusammenfassung für {date_str} – GPT deaktiviert."
-
-    import openai
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     inbox_tasks = [t for t in tasks if not (
         t.get("properties", {}).get("Projects", {}).get("relation") or
@@ -111,20 +120,20 @@ Sprache: Deutsch. Stil: professionell & fokussiert.
 """
 
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Du bist ein präziser Analyse-Assistent."},
                 {"role": "user", "content": prompt}
             ]
         )
-        return response.choices[0].message.content.strip()
+        return response.choices[0].message["content"].strip()
     except Exception as e:
         return f"[Fehler bei GPT-Zusammenfassung: {e}]"
 
 def create_journal_entry(date_str, readable_date, tasks, notes, projects, areas, summary):
     url = "https://api.notion.com/v1/pages"
-    db_id = os.getenv("DB_JOURNAL")
+    db_id = DB_JOURNAL
 
     properties = {
         "Name": {"title": [{"text": {"content": f"Journal: {readable_date}"}}]},
@@ -151,10 +160,10 @@ def main():
     print(f"📅 Verarbeite Einträge vom {date_str}")
     log_debug(f"🕒 Analyse für den {date_str}\n")
 
-    all_tasks = query_all_items(os.getenv("DB_TASKS"))
+    all_tasks = query_all_items(DB_TASKS)
     tasks = filter_by_edited_time(all_tasks, date_str)
 
-    all_notes = query_all_items(os.getenv("DB_NOTES"))
+    all_notes = query_all_items(DB_NOTES)
     notes = filter_by_created_time(all_notes, date_str)
 
     project_ids = extract_related_ids(tasks, "Projects")
