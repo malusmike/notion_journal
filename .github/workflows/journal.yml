@@ -1,0 +1,33 @@
+name: Notion Journal Automation
+
+on:
+  schedule:
+    - cron: '0 23 * * *'  # 03:00 Dubai-Zeit (UTC = -4)
+  workflow_dispatch:
+
+jobs:
+  journal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run journal script
+        run: python journal_creator.py
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          DB_TASKS: ${{ secrets.DB_TASKS }}
+          DB_JOURNAL: ${{ secrets.DB_JOURNAL }}
+          DB_NOTIZEN: ${{ secrets.DB_NOTIZEN }}
+          DB_PROJECTS: ${{ secrets.DB_PROJECTS }}
+          DB_AREAS: ${{ secrets.DB_AREAS }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
