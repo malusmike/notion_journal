@@ -89,8 +89,7 @@ V. Neue Inbox-Tasks (ohne Projekt oder Bereich): {len(inbox_tasks)}
 - Keine Füllwörter
 '''
 
-    log_debug("📨 GPT Prompt:
-" + prompt)
+log_debug("📨 GPT Prompt:\n" + prompt)
 
     try:
         response = client.chat.completions.create(

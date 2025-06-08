@@ -2,7 +2,7 @@ name: Notion Journal Automation
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 03:00 Dubai-Zeit (UTC = -4)
+    - cron: '0 23 * * *'  # 05:00 Dubai-Zeit (UTC = -4)
   workflow_dispatch:
 
 jobs:
