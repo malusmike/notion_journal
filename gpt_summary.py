@@ -14,26 +14,34 @@ def generate_gpt_summary(
     linked_areas,
     tags_and_categories
 ):
-    prompt = f"""Fasse die Arbeitsaktivität vom {date_str} zusammen:
+     prompt = f"""
+Arbeitsaktivitäten Zusammenfassung für den {date_str}:
 
-🔧 Neu erstellte Aufgaben: {len(tasks_created)}
-🗒️ Erstellte Notizen: {len(notes_created)}
-🛠️ Bearbeitete Aufgaben (last edited): {len(tasks_edited)}
-📁 Bearbeitete Projekte (last edited): {len(projects_edited)}
-🏷️ Bearbeitete Areas/Resources (last edited): {len(areas_edited)}
+I. Neu erstellte Aufgaben: {len(new_tasks)}
+II. Erstellte Notizen: {len(new_notes)}
+III. Bearbeitete Aufgaben: {len(edited_tasks)}
+IV. Bearbeitete Notizen: {len(edited_notes)}
+V. Neue Inbox-Tasks (ohne Projekt oder Bereich): {len(inbox_tasks)}
 
-Bewerte:
-- Welche Projekte oder Bereiche waren über verknüpfte Tasks/Notizen beteiligt? Wo lag der Schwerpunkt? Gab es thematische Schwerpunkte, z. B. durch Tags, Titel oder Kategorien?
-- Welche Learnings, Trends oder Empfehlungen lassen sich ableiten?
+🧠 Bewertung:
 
-Antwort in strukturierter Form mit Abschnitten:
-I. Neu erstellte Aufgaben
-II. Erstellte Notizen
-III. Gestern bearbeitete Aufgaben
-IV. Gestern bearbeitete Projekte
-V. Gestern bearbeitete Areas/Resources
-VI. Inbox-Tasks (optional)
-VII. Learnings/Empfehlungen
+1. Welche übergeordneten Projekte oder Bereiche (PARA) waren über verknüpfte Tasks oder Notizen beteiligt?
+   - Berücksichtige in deiner Antwort die Inhalte aus diesen Verlinkungen:
+     {linked_projects + linked_areas}
+
+2. Welche thematischen Schwerpunkte lassen sich aus Tags oder Kategorien ableiten?
+   - Nutze dazu folgende Labels (Mehrfachauswahl möglich):
+     {tags_and_categories}
+
+3. Welche Learnings, Trends oder Empfehlungen lassen sich aus den heutigen Aktivitäten ableiten?
+   - Denkbar wären Aussagen zu Fokus, Effizienz, Zeitmanagement, Tool-Nutzung, thematische Häufung etc.
+
+❗️Wichtige Stilregeln:
+- Keine Auflistung einzelner Task- oder Notiztitel! nur zählen für I.,II. bis V.)
+- Gib eine kompakte, interpretierende Zusammenfassung.
+- Struktur: Einleitung (2 Sätze), Thematische Schwerpunkte, Beteiligte PARA-Elemente, Learnings & Empfehlungen.
+- Sprich im Fließtext oder klar gegliederten Absätzen.
+- keine füllwörter
 """
 
 
