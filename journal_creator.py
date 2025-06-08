@@ -2,18 +2,23 @@ import os
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import requests
+from openai import OpenAI
 from gpt_summary import generate_gpt_summary
 
-# 🔐 .env laden
+
+
+# Lokales .env laden, falls vorhanden
 if os.path.exists(".env"):
     load_dotenv()
 
+# 🔐 Umgebungsvariablen
 NOTION_TOKEN   = os.getenv("NOTION_TOKEN")
 DB_TASKS       = os.getenv("DB_TASKS")
 DB_JOURNAL     = os.getenv("DB_JOURNAL")
 DB_NOTIZEN     = os.getenv("DB_NOTIZEN")
 DB_PROJECTS    = os.getenv("DB_PROJECTS")
 DB_AREAS       = os.getenv("DB_AREAS")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 HEADERS = {
     "Authorization": f"Bearer {NOTION_TOKEN}",
@@ -22,6 +27,7 @@ HEADERS = {
 }
 
 DEBUG_LOG_FILE = "journal_debug.txt"
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 🪵 Logging
 def log_debug(text):
@@ -56,7 +62,7 @@ def fetch_notion_db(db_id):
         next_cursor = res_json.get("next_cursor")
     return results
 
-# 📍 Filter nach Erstellungsdatum
+# 🔍 Nur Items, die gestern erstellt wurden
 def filter_by_created_time(items, date_str):
     target = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     next_day = target + timedelta(days=1)
@@ -80,14 +86,60 @@ def filter_by_created_time(items, date_str):
     log_debug(f"✅ Gefilterte Objekte: {len(filtered)}\n")
     return filtered
 
-# 📍 Filter nach letztem Bearbeitungsdatum
+# 🔍 Für GPT: Items, die gestern zuletzt bearbeitet wurden
 def filter_by_last_edited_time(items, date_str):
     target = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     next_day = target + timedelta(days=1)
-    return [
-        item for item in items
-        if target <= datetime.fromisoformat(item.get("last_edited_time", "").replace("Z", "+00:00")) < next_day
-    ]
+    filtered = []
+
+    log_debug(f"🕓 GPT-only Analyse: Last edited between {target.isoformat()} and {next_day.isoformat()}")
+    for item in items:
+        edited_raw = item.get("last_edited_time")
+        if edited_raw:
+            edited = datetime.fromisoformat(edited_raw.replace("Z", "+00:00"))
+            if target <= edited < next_day:
+                filtered.append(item)
+    log_debug(f"🧠 GPT-only Items (last_edited_time): {len(filtered)}")
+    return filtered
+
+# 💬 GPT-Zusammenfassung
+def generate_gpt_summary(tasks_created, notes_created, all_tasks, all_projects, all_areas, date_str):
+    tasks_edited    = filter_by_last_edited_time(all_tasks, date_str)
+    projects_edited = filter_by_last_edited_time(all_projects, date_str)
+    areas_edited    = filter_by_last_edited_time(all_areas, date_str)
+
+    prompt = f"""Erstelle eine strukturierte Zusammenfassung der Arbeitsaktivität vom {date_str}. 
+Nutze klare, gegliederte Stichpunkte und leite sinnvolle Learnings oder Empfehlungen ab.
+
+Berücksichtige folgende Quellen:
+
+🔧 Neu erstellte Aufgaben:
+{[get_title_from_item(t) for t in tasks_created]}
+
+🗒️ Erstellte Notizen:
+{[get_title_from_item(n) for n in notes_created]}
+
+🛠️ Gestern bearbeitete Aufgaben:
+{[get_title_from_item(t) for t in tasks_edited]}
+
+📁 Gestern bearbeitete Projekte:
+{[get_title_from_item(p) for p in projects_edited]}
+
+🏷️ Gestern bearbeitete Areas/Resources:
+{[get_title_from_item(a) for a in areas_edited]}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=800,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        log_debug(f"❌ GPT Fehler: {str(e)}")
+        return "GPT-Zusammenfassung konnte nicht erstellt werden."
 
 # 📝 Journal-Eintrag erstellen
 def create_journal_entry(date_str, tasks, notes, projects, areas, summary):
@@ -121,60 +173,30 @@ def main():
     if os.path.exists(DEBUG_LOG_FILE):
         os.remove(DEBUG_LOG_FILE)
 
-    date_str = compute_yesterday()
-    log_debug(f"📅 Verarbeitung für: {date_str}")
+    yesterday_str = compute_yesterday()
+    log_debug(f"📅 Verarbeitung für: {yesterday_str}")
 
     all_tasks    = fetch_notion_db(DB_TASKS)
     all_notes    = fetch_notion_db(DB_NOTIZEN)
     all_projects = fetch_notion_db(DB_PROJECTS)
     all_areas    = fetch_notion_db(DB_AREAS)
 
-    new_tasks    = filter_by_created_time(all_tasks, date_str)
-    new_notes    = filter_by_created_time(all_notes, date_str)
-    edited_tasks = filter_by_last_edited_time(all_tasks, date_str)
-    edited_notes = filter_by_last_edited_time(all_notes, date_str)
-
-    inbox_tasks = [
-        t for t in all_tasks
-        if not t["properties"].get("Due Date", {}).get("date") and
-           not t["properties"].get("Projects", {}).get("relation") and
-           not t["properties"].get("Areas/Resources", {}).get("relation")
-    ]
-
-    linked_projects = list(set(
-        p["properties"]["Name"]["title"][0]["text"]["content"]
-        for t in all_tasks
-        for p in all_projects
-        if p["id"] in [r["id"] for r in t["properties"].get("Projects", {}).get("relation", [])]
-    ))
-
-    linked_areas = list(set(
-        a["properties"]["Name"]["title"][0]["text"]["content"]
-        for t in all_tasks
-        for a in all_areas
-        if a["id"] in [r["id"] for r in t["properties"].get("Areas/Resources", {}).get("relation", [])]
-    ))
-
-    tags_and_categories = list(set(
-        tag["name"]
-        for t in all_tasks
-        for tag in t["properties"].get("Tags", {}).get("multi_select", []) +
-                    t["properties"].get("Kategorie", {}).get("multi_select", [])
-    ))
+    tasks    = filter_by_created_time(all_tasks, yesterday_str)
+    notes    = filter_by_created_time(all_notes, yesterday_str)
+    projects = filter_by_created_time(all_projects, yesterday_str)
+    areas    = filter_by_created_time(all_areas, yesterday_str)
 
     summary = generate_gpt_summary(
-        date_str=date_str,
-        new_tasks=new_tasks,
-        new_notes=new_notes,
-        edited_tasks=edited_tasks,
-        edited_notes=edited_notes,
-        inbox_tasks=inbox_tasks,
-        linked_projects=linked_projects,
-        linked_areas=linked_areas,
-        tags_and_categories=tags_and_categories
-    )
+    tasks_created=tasks,
+    notes_created=notes,
+    all_tasks=all_tasks,
+    all_projects=all_projects,
+    all_areas=all_areas,
+    date_str=yesterday_str
+)
 
-    create_journal_entry(date_str, new_tasks, new_notes, all_projects, all_areas, summary)
+
+    create_journal_entry(yesterday_str, tasks, notes, projects, areas, summary)
 
 if __name__ == "__main__":
     main()
