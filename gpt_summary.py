@@ -1,27 +1,47 @@
-def generate_gpt_summary(tasks_created, notes_created, all_tasks, all_projects, all_areas, date_str):
-    tasks_edited = filter_by_last_edited_time(all_tasks, date_str)
-    projects_edited = filter_by_last_edited_time(all_projects, date_str)
-    areas_edited = filter_by_last_edited_time(all_areas, date_str)
+from openai import OpenAI
+from datetime import datetime, timedelta, timezone
 
-    prompt = f"""Fasse die Arbeitsaktivität vom {date_str} kurz und strukturiert zusammen:
+client = OpenAI()
 
-- Wie viele neue Tasks wurden erstellt? (Tasks: {len(tasks_created)})
-- Wie viele bestehende Tasks wurden bearbeitet? (Bearbeitet: {len(tasks_edited)})
-- Wie viele neue Notizen wurden erstellt? (Notizen: {len(notes_created)})
-- Welche thematischen Schwerpunkte lassen sich erkennen (z. B. aus Tags, Kategorien oder Titeln)?
-- Welche Projekte oder Bereiche waren durch verknüpfte Tasks oder Notizen beteiligt?
-- Was lässt sich daraus an Learnings oder Empfehlungen ableiten?
+def summarize_activity(
+    date_str,
+    new_tasks,
+    new_notes,
+    edited_tasks,
+    edited_notes,
+    inbox_tasks,
+    linked_projects,
+    linked_areas,
+    tags_and_categories
+):
+    prompt = f"""Erstelle eine strukturierte Zusammenfassung der Arbeitsaktivität vom {date_str}.
 
-Verwende klare Bulletpoints und max. 5 Absätze. Führe keine einzelnen Titel oder Inhalte der Tasks/Notizen an."""
+I. Neu erstellte Aufgaben: {len(new_tasks)}
+II. Erstellte Notizen: {len(new_notes)}
+III. Bearbeitete Aufgaben: {len(edited_tasks)}
+IV. Bearbeitete Notizen: {len(edited_notes)}
+V. Tasks in der Inbox: {len(inbox_tasks)}
+
+Thematischer Schwerpunkt:
+Basierend auf den verlinkten Projekten und Bereichen zeigt sich ein Fokus auf folgende Themen:
+Projekte: {[p for p in linked_projects] or 'Keine'}
+Bereiche: {[a for a in linked_areas] or 'Keine'}
+
+Zusätzlich vorhandene Tags/Kategorien:
+{list(set(tags_and_categories)) or 'Keine'}
+
+Formuliere auf dieser Grundlage Learnings und Empfehlungen:
+- Was lässt sich aus den Themen ableiten? 
+- Welche Empfehlungen ergeben sich aus der Struktur der Arbeit?
+- Was sollte beibehalten oder verbessert werden?"""
 
     try:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=600,
+            max_tokens=800
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        log_debug(f"❌ GPT Fehler: {str(e)}")
-        return "GPT-Zusammenfassung konnte nicht erstellt werden."
+        return f"GPT-Zusammenfassung konnte nicht erstellt werden. Fehler: {str(e)}"
