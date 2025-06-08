@@ -21,22 +21,6 @@ def generate_gpt_summary(
     linked_areas,
     tags_and_categories
 ):
-    log_debug("📊 Anzahl Tasks/Notes/Inbox:")
-    log_debug(f"- Neu erstellte Tasks: {len(new_tasks)}")
-    log_debug(f"- Erstellte Notizen: {len(new_notes)}")
-    log_debug(f"- Bearbeitete Tasks: {len(edited_tasks)}")
-    log_debug(f"- Bearbeitete Notizen: {len(edited_notes)}")
-    log_debug(f"- Inbox Tasks: {len(inbox_tasks)}")
-
-    log_debug("🔗 Verlinkte Projekte:")
-    log_debug(str(linked_projects))
-
-    log_debug("🔗 Verlinkte Areas:")
-    log_debug(str(linked_areas))
-
-    log_debug("🏷 Tags und Kategorien:")
-    log_debug(str(tags_and_categories))
-
     prompt = f"""
 Zusammenfassung für den {date_str}:
 
@@ -61,26 +45,27 @@ V. Neue Inbox-Tasks (ohne Projekt oder Bereich): {len(inbox_tasks)}
 
 ❗️Wichtige Stilregeln:
 - Am wichtigsten sind mir thematische Schwerpunkte nach Labels, Projekten, Bereichen
-- Für erstellte oder bearbeitete Aufgaben, Notizen reicht mir die Anzahl (und ich sehe die information neben deiner Summary, kann diese bei BEdarf anklicken)
-- Die Anzahl der Inbox-Tasks ist mir sehr wichtig, da ich nach Para arbeite
+- Für erstellte oder bearbeitete Aufgaben, Notizen reicht mir die Anzahl
+- Die Anzahl der Inbox-Tasks ist mir sehr wichtig, da ich nach PARA arbeite
 - Keine Auflistung einzelner Task- oder Notiztitel! nur zählen für I.,II. bis V.)
 - Gib eine kompakte, interpretierende Zusammenfassung.
 - Struktur: Einleitung (2 Sätze), Thematische Schwerpunkte, Beteiligte PARA-Elemente, Learnings & Empfehlungen.
 - Sprich im Fließtext oder klar gegliederten Absätzen.
-- keine füllwörter,
+- Keine Füllwörter
 """
+
+    log_debug("🧠 GPT Prompt:\n" + prompt.strip())
 
     try:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=800,
+            temperature=0.6,
+            max_tokens=600
         )
-        summary = response.choices[0].message.content.strip()
-        log_debug("✅ GPT-Antwort erhalten:")
-        log_debug(summary)
-        return summary
+        result = response.choices[0].message.content.strip()
+        log_debug("✅ GPT Summary erhalten:\n" + result)
+        return result
     except Exception as e:
         log_debug(f"❌ GPT-Fehler: {str(e)}")
         return "GPT-Zusammenfassung konnte nicht erstellt werden."
