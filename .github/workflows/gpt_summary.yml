@@ -1,5 +1,6 @@
 name: GPT Summary Step
 on:
+  workflow_dispatch:
   schedule:
     - cron: '3 1 * * *' # läuft 05:03 Dubai-Zeit = 01:03 UTC
 jobs:
