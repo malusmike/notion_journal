@@ -89,16 +89,20 @@ V. Neue Inbox-Tasks (ohne Projekt oder Bereich): {len(inbox_tasks)}
 - Keine Füllwörter
 '''
 
-log_debug("📨 GPT Prompt:\n" + prompt)
+    log_debug("📨 GPT Prompt:\n" + prompt)
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "Du bist ein prägnanter und analytischer Schreibassistent."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
             max_tokens=900
         )
         return response.choices[0].message.content.strip()
+
     except Exception as e:
         log_debug(f"❌ GPT Fehler: {str(e)}")
-        return "GPT-Zusammenfassung konnte nicht erstellt werden."
+        return "⚠️ GPT-Zusammenfassung konnte nicht erstellt werden."
