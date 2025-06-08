@@ -1,12 +1,23 @@
 import os
+from dotenv import load_dotenv
 from datetime import datetime, timezone
 from openai import OpenAI
 import requests
 
-NOTION_TOKEN = os.getenv("NOTION_TOKEN")
-JOURNAL_DB_ID = os.getenv("JOURNAL_DB_ID")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-DEBUG_LOG_FILE = "gpt_summary_debug.txt"
+# Lokale .env laden
+if os.path.exists(".env"):
+    load_dotenv()
+
+# 🔐 Umgebungsvariablen
+NOTION_TOKEN   = os.getenv("NOTION_TOKEN")
+DB_TASKS       = os.getenv("DB_TASKS")
+DB_JOURNAL     = os.getenv("DB_JOURNAL")
+DB_NOTIZEN     = os.getenv("DB_NOTIZEN")
+HEADERS = {
+    "Authorization": f"Bearer {NOTION_TOKEN}",
+    "Notion-Version": "2022-06-28",
+    "Content-Type": "application/json"
+}
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
