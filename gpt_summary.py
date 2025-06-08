@@ -14,26 +14,28 @@ def generate_gpt_summary(
     linked_areas,
     tags_and_categories
 ):
-    prompt = f"""Erstelle eine strukturierte Zusammenfassung der Arbeitsaktivität vom {date_str}.
+    prompt = f"""Fasse die Arbeitsaktivität vom {date_str} zusammen:
 
-I. Neu erstellte Aufgaben: {len(new_tasks)}
-II. Erstellte Notizen: {len(new_notes)}
-III. Bearbeitete Aufgaben: {len(edited_tasks)}
-IV. Bearbeitete Notizen: {len(edited_notes)}
-V. Tasks in der Inbox: {len(inbox_tasks)}
+🔧 Neu erstellte Aufgaben: {len(tasks_created)}
+🗒️ Erstellte Notizen: {len(notes_created)}
+🛠️ Bearbeitete Aufgaben (last edited): {len(tasks_edited)}
+📁 Bearbeitete Projekte (last edited): {len(projects_edited)}
+🏷️ Bearbeitete Areas/Resources (last edited): {len(areas_edited)}
 
-Thematischer Schwerpunkt:
-Basierend auf den verlinkten Projekten und Bereichen zeigt sich ein Fokus auf folgende Themen:
-Projekte: {[p for p in linked_projects] or 'Keine'}
-Bereiche: {[a for a in linked_areas] or 'Keine'}
+Bewerte:
+- Welche Projekte oder Bereiche waren über verknüpfte Tasks/Notizen beteiligt? Wo lag der Schwerpunkt? Gab es thematische Schwerpunkte, z. B. durch Tags, Titel oder Kategorien?
+- Welche Learnings, Trends oder Empfehlungen lassen sich ableiten?
 
-Zusätzlich vorhandene Tags/Kategorien:
-{list(set(tags_and_categories)) or 'Keine'}
+Antwort in strukturierter Form mit Abschnitten:
+I. Neu erstellte Aufgaben
+II. Erstellte Notizen
+III. Gestern bearbeitete Aufgaben
+IV. Gestern bearbeitete Projekte
+V. Gestern bearbeitete Areas/Resources
+VI. Inbox-Tasks (optional)
+VII. Learnings/Empfehlungen
+"""
 
-Formuliere auf dieser Grundlage Learnings und Empfehlungen:
-- Was lässt sich aus den Themen ableiten? 
-- Welche Empfehlungen ergeben sich aus der Struktur der Arbeit?
-- Was sollte beibehalten oder verbessert werden?"""
 
     try:
         response = client.chat.completions.create(
