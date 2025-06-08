@@ -14,7 +14,7 @@ def generate_gpt_summary(
     linked_areas,
     tags_and_categories
 ):
-     prompt = f"""
+    prompt = f"""
 Arbeitsaktivitäten Zusammenfassung für den {date_str}:
 
 I. Neu erstellte Aufgaben: {len(new_tasks)}
@@ -43,7 +43,6 @@ V. Neue Inbox-Tasks (ohne Projekt oder Bereich): {len(inbox_tasks)}
 - Sprich im Fließtext oder klar gegliederten Absätzen.
 - keine füllwörter
 """
-
 
     try:
         response = client.chat.completions.create(
