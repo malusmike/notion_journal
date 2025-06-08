@@ -15,7 +15,7 @@ def generate_gpt_summary(
     tags_and_categories
 ):
     prompt = f"""
-Arbeitsaktivitäten Zusammenfassung für den {date_str}:
+Zusammenfassung für den {date_str}:
 
 I. Neu erstellte Aufgaben: {len(new_tasks)}
 II. Erstellte Notizen: {len(new_notes)}
@@ -37,6 +37,9 @@ V. Neue Inbox-Tasks (ohne Projekt oder Bereich): {len(inbox_tasks)}
    - Denkbar wären Aussagen zu Fokus, Effizienz, Zeitmanagement, Tool-Nutzung, thematische Häufung etc.
 
 ❗️Wichtige Stilregeln:
+- Am wichtigsten sind mir thematische Schwerpunkte nach Labels, Projekten, Bereichen
+- Für erstellte oder bearbeitete Aufgaben, Notizen reicht mir die Anzahl
+- Die Anzahl der Inbox-Tasks ist mir wichtig, da ich nach Para arbeite
 - Keine Auflistung einzelner Task- oder Notiztitel! nur zählen für I.,II. bis V.)
 - Gib eine kompakte, interpretierende Zusammenfassung.
 - Struktur: Einleitung (2 Sätze), Thematische Schwerpunkte, Beteiligte PARA-Elemente, Learnings & Empfehlungen.
