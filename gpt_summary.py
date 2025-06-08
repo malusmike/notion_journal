@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 client = OpenAI()
 
-def summarize_activity(
+def generate_gpt_summary(
     date_str,
     new_tasks,
     new_notes,
