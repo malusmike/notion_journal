@@ -4,22 +4,20 @@ from datetime import datetime, timezone
 from openai import OpenAI
 import requests
 
-# Lokale .env laden
+# 🔐 ENV laden
 if os.path.exists(".env"):
     load_dotenv()
 
-# 🔐 Umgebungsvariablen
-NOTION_TOKEN   = os.getenv("NOTION_TOKEN")
-DB_TASKS       = os.getenv("DB_TASKS")
-DB_JOURNAL     = os.getenv("DB_JOURNAL")
-DB_NOTIZEN     = os.getenv("DB_NOTIZEN")
-HEADERS = {
-    "Authorization": f"Bearer {NOTION_TOKEN}",
-    "Notion-Version": "2022-06-28",
-    "Content-Type": "application/json"
-}
+# 🔐 Secrets laden
+NOTION_TOKEN    = os.getenv("NOTION_TOKEN")
+OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY")  # <- Muss VOR client-Aufruf passieren!
+DB_TASKS        = os.getenv("DB_TASKS")
+DB_JOURNAL      = os.getenv("DB_JOURNAL")
+DB_NOTIZEN      = os.getenv("DB_NOTIZEN")
 
+# 🔑 GPT-Client initialisieren
 client = OpenAI(api_key=OPENAI_API_KEY)
+
 
 def log_debug(text):
     with open(DEBUG_LOG_FILE, "a", encoding="utf-8") as f:
