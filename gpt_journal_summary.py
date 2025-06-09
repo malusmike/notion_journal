@@ -89,13 +89,6 @@ Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
 3. Welche Learnings, Trends, Empfehlungen lassich sich ableiten - basierend auf die SChwerpunkte, welche trendige Topics in den Fachbereichen mit Relevanz seiner Aktiväten könnte für den Nutzer künftig interessant sein?
 4. Was lässt sich für künftige Arbeit ableiten?
 5. Kein Bullet-Point-Stil, keine Füllwörter – schreibe fließend, max. 5 Absätze. 
----  
-Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
-1. Welche inhaltlichen Themen wurden behandelt?
-2. Gab es erkennbare Schwerpunkte oder Prioritäten?
-3. Was wurde gelernt, beobachtet oder verbessert?
-4. Was lässt sich für künftige Arbeit ableiten?
-5. Kein Bullet-Point-Stil – schreibe fließend, max. 5 Absätze.
 6. Verzichte auf Füllwörter
 
 WICHTIG: Der fertige Text darf niemals mehr als 1999 Zeichen (inklusive Leerzeichen) enthalten. Diese Grenze ist strikt einzuhalten, da der Text sonst nicht gespeichert werden kann. Überschreite diese Grenze unter keinen Umständen – kürze gegebenenfalls ab.
@@ -104,6 +97,10 @@ Beginne jetzt mit der Zusammenfassung.
 """.strip()
 
 def update_summary(entry_id, summary_text):
+    # Kürzen, wenn nötig
+    if len(summary_text) > 1990:
+        summary_text = summary_text[:1987].rstrip() + "..."
+
     url = f"https://api.notion.com/v1/pages/{entry_id}"
     payload = {
         "properties": {
@@ -121,6 +118,11 @@ def update_summary(entry_id, summary_text):
         print("Response:", res.text)
         res.raise_for_status()
     print("✅ Zusammenfassung in Notion gespeichert.")
+
+def backup_to_txt(content, filename="gpt_output_backup.txt"):
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"💾 Backup gespeichert unter {filename}")
 
 def main():
     entry = get_latest_journal_entry()
@@ -140,12 +142,13 @@ def main():
             {"role": "user", "content": prompt}
         ],
         temperature=0.4,
-        max_tokens=650
+        max_tokens=600
     )
 
     summary = response.choices[0].message.content.strip()
-    print("\n🧠 GPT-Antwort:\n", summary)
+    print(f"\n🧠 GPT-Antwort ({len(summary)} Zeichen):\n{summary}")
 
+    backup_to_txt(summary)
     update_summary(entry_id, summary)
 
 if __name__ == "__main__":
