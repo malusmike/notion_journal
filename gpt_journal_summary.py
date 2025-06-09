@@ -49,30 +49,50 @@ def extract_rollup_text(entry, property_name):
     return ""
 
 def generate_prompt(entry, date_str):
-    prompt = f"""
-    Zusammenfassung der Arbeitsaktivität am {date_str}:
-nutze diese Informationen für den Eintrag: 
-    📌 Projekte: {extract_rollup_text(entry, "Projects")}
-    📌 Bereiche/Ressourcen: {extract_rollup_text(entry, "Areas/Resources")}
+    def get(name): return extract_rollup_text(entry, name)
 
-    🔖 Kategorien (Tasks): {extract_rollup_text(entry, "kategorien tasks")}
-    🔖 Kategorien (Notes): {extract_rollup_text(entry, "kategorien notes")}
-    🏷 Tags (Notes): {extract_rollup_text(entry, "notes-tags")}
-    📂 Typen (Notes): {extract_rollup_text(entry, "notes-typ")}
+    return f"""
+Du bist ein Assistent, der für ein tägliches Journal eine thematische Zusammenfassung erstellt.  
+Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkrete, knappe und inhaltlich strukturierte Zusammenfassung** zu schreiben.
 
-    🧾 Beschreibung Projekte: {extract_rollup_text(entry, "Projectdescription")}
-    🧾 Beschreibung Areas/Resources: {extract_rollup_text(entry, "Areasdescription")}
-Der Eintrag im Feld Summary soll beinhalten: 
-    ✅ Erledigte Tasks: {extract_rollup_text(entry, "Done")}% erledigt von der Gesamtanzahl dr relevanten für disen Tag. (ggf. aus dem %-Wert ableiten)
+### Aufgaben:
+{get("textTasks")}
 
-    ➤ Gib eine klare Zusammenfassung mit folgenden Schwerpunkten:
-    - Woran wurde inhaltlich gearbeitet?
-    - Gab es erkennbare thematische Häufungen?
-    - Welche Learnings, Trends oder Empfehlungen lassen sich aus der Aktivität ableiten?
-    - Gliedere in kurze Absätze, kein Bullet-Point-Stil.
-    - Keine Wiederholung einzelner Titel, nur thematische Auswertung.
-    """
-    return prompt.strip()
+### Notizen:
+{get("textNotes")}
+
+### Projekte:
+{get("textProjects")}
+
+### Bereiche / Ressourcen:
+{get("textAreas")}
+
+### Kategorien aus Tasks:
+{get("textKategorienTasks")}
+
+### Kategorien aus Notizen:
+{get("textKategorienNotes")}
+
+### Tags / Typen aus Notizen:
+{get("textTagsNotes")}, {get("textTypNotes")}
+
+### Beschreibung Projekte:
+{get("textProjectDescription")}
+
+### Beschreibung Areas:
+{get("textAreasDescription")}
+
+---  
+Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
+1. Welche inhaltlichen Themen wurden behandelt?
+2. Gab es erkennbare Schwerpunkte oder Prioritäten?
+3. Was wurde gelernt, beobachtet oder verbessert?
+4. Was lässt sich für künftige Arbeit ableiten?
+5. Kein Bullet-Point-Stil – schreibe fließend, max. 5 Absätze.
+
+Beginne jetzt mit der Zusammenfassung.
+""".strip()
+
 
 def update_summary(entry_id, summary_text):
     url = f"https://api.notion.com/v1/pages/{entry_id}"
