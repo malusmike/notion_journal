@@ -1,22 +1,27 @@
 name: GPT Summary Step
+
 on:
   workflow_dispatch:
   schedule:
     - cron: '3 1 * * *' # läuft 05:03 Dubai-Zeit = 01:03 UTC
+
 jobs:
   run-gpt-summary:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Run GPT Journal Summary
-  	env:
-   	 NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-    	 OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-   	 DB_JOURNAL: ${{ secrets.DB_JOURNAL }}
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DB_JOURNAL: ${{ secrets.DB_JOURNAL }}
         run: python gpt_journal_summary.py
