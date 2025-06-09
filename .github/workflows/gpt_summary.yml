@@ -15,7 +15,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run GPT Journal Summary
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  	env:
+   	 NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+    	 OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+   	 DB_JOURNAL: ${{ secrets.DB_JOURNAL }}
         run: python gpt_journal_summary.py
