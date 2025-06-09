@@ -60,7 +60,17 @@ def extract_rollup_text(entry, property_name):
         return ", ".join([r.get("id", "") for r in prop.get("relation", [])])
     return ""
 
+def get_possible_property(entry, label_variants):
+    for label in label_variants:
+        if label in entry["properties"]:
+            return label
+    print(f"⚠️ Keins der Felder gefunden: {', '.join(label_variants)}")
+    return None
+
 def generate_prompt(entry, date_str):
+    done_field = get_possible_property(entry, ["Done", "Done %", "Done:", "Erledigt", "Status %"])
+    done_value = extract_rollup_text(entry, done_field) if done_field else ""
+
     return f"""Zusammenfassung für den {date_str}:
 Nutze diese Informationen für den Eintrag:
 
@@ -75,7 +85,7 @@ Nutze diese Informationen für den Eintrag:
 🧾 Beschreibung Projekte: {extract_rollup_text(entry, "Projectdescription")}
 🧾 Beschreibung Areas/Resources: {extract_rollup_text(entry, "Areasdescription")}
 
-✅ Erledigte Tasks: {extract_rollup_text(entry, "Done")} % erledigt von der Gesamtanzahl der relevanten für diesen Tag.
+✅ Erledigte Tasks: {done_value} % erledigt von der Gesamtanzahl der relevanten für diesen Tag.
 
 ➤ Gib eine klare Zusammenfassung mit folgenden Schwerpunkten:
 - Woran wurde inhaltlich gearbeitet?
