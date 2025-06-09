@@ -142,7 +142,7 @@ def main():
             {"role": "user", "content": prompt}
         ],
         temperature=0.4,
-        max_tokens=520
+        max_tokens=490
     )
 
     summary = response.choices[0].message.content.strip()
