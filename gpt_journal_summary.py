@@ -4,7 +4,6 @@ from datetime import datetime
 
 DEBUG_LOG_FILE = "gpt_summary_debug.txt"
 
-# 🔐 Umgebungsvariablen aus GitHub Actions oder lokalem Setup
 NOTION_TOKEN = os.environ.get("NOTION_TOKEN")
 DB_JOURNAL = os.environ.get("DB_JOURNAL")
 
@@ -58,6 +57,30 @@ def extract_rollup_text(entry, property_name):
         return ", ".join([v.get("name", "") for v in prop.get("multi_select", [])])
     return ""
 
+def generate_prompt(entry, date_str):
+    return f"""Zusammenfassung für den {date_str}:
+Nutze diese Informationen für den Eintrag:
+
+📌 Projekte: {extract_rollup_text(entry, "Projects")}
+📌 Bereiche/Ressourcen: {extract_rollup_text(entry, "Areas/Resources")}
+
+🔖 Kategorien (Tasks): {extract_rollup_text(entry, "kategorien tasks")}
+🔖 Kategorien (Notes): {extract_rollup_text(entry, "kategorien notes")}
+🏷 Tags (Notes): {extract_rollup_text(entry, "notes-tags")}
+📂 Typen (Notes): {extract_rollup_text(entry, "notes-typ")}
+
+🧾 Beschreibung Projekte: {extract_rollup_text(entry, "Projectdescription")}
+🧾 Beschreibung Areas/Resources: {extract_rollup_text(entry, "Areasdescription")}
+
+✅ Erledigte Tasks: {extract_rollup_text(entry, "Done")} % erledigt von der Gesamtanzahl der relevanten für diesen Tag.
+
+➤ Gib eine klare Zusammenfassung mit folgenden Schwerpunkten:
+- Woran wurde inhaltlich gearbeitet?
+- Gab es erkennbare thematische Häufungen?
+- Welche Learnings, Trends oder Empfehlungen lassen sich aus der Aktivität ableiten?
+- Gliedere in kurze Absätze, kein Bullet-Point-Stil.
+- Keine Wiederholung einzelner Titel, nur thematische Auswertung."""
+
 def main():
     entry = get_latest_journal_entry()
     if not entry:
@@ -65,31 +88,12 @@ def main():
         log_debug("❌ Kein Journaleintrag gefunden.")
         return
 
-    print("📋 Verfügbare Properties im letzten Journaleintrag:")
-    for key, prop in entry["properties"].items():
-        print(f"- {key}: {prop.get('type')}")
-
-    print("\n---------------------------")
     date_str = entry["properties"].get("Date", {}).get("date", {}).get("start", "Kein Datum")
-    print(f"📅 Journaleintrag für: {date_str}")
-    print("---------------------------")
 
-    # ⚠️ Wichtig: Korrekte API-Feldnamen laut Debug
-    fields_to_check = [
-        "Projects",
-        "Areas/Resources",
-        "kategorien tasks",
-        "kategorien notes",
-        "notes-tags",
-        "notes-typ",
-        "Projectdescription",
-        "Areasdescription",
-        "Done:"  # <- wichtig!
-    ]
-
-    for field in fields_to_check:
-        value = extract_rollup_text(entry, field)
-        print(f"{field}: {value}")
+    print("\n✅ Generierter GPT-Eingabe-Prompt:\n")
+    prompt = generate_prompt(entry, date_str)
+    print(prompt)
+    print("\n🔍 Fertig. Alle verwendeten Notion-Werte wurden ausgelesen.")
 
 if __name__ == "__main__":
     main()
