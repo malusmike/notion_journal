@@ -17,8 +17,8 @@ DB_NOTIZEN      = os.getenv("DB_NOTIZEN")
 
 # 🔑 GPT-Client initialisieren
 client = OpenAI(api_key=OPENAI_API_KEY)
-DEBUG_LOG_FILE = "gpt_summary_debug.txt"
 
+DEBUG_LOG_FILE = "gpt_summary_debug.txt"
 
 def log_debug(text):
     with open(DEBUG_LOG_FILE, "a", encoding="utf-8") as f:
@@ -79,27 +79,6 @@ Der Eintrag im Feld Summary soll beinhalten:
     - Keine Wiederholung einzelner Titel, nur thematische Auswertung.
     """
 
-def update_summary_field(page_id, summary):
-    url = f"https://api.notion.com/v1/pages/{page_id}"
-    headers = {
-        "Authorization": f"Bearer {NOTION_TOKEN}",
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "properties": {
-            "Summary": {
-                "rich_text": [{
-                    "type": "text",
-                    "text": {"content": summary}
-                }]
-            }
-        }
-    }
-    res = requests.patch(url, json=payload, headers=headers)
-    res.raise_for_status()
-    return res.status_code == 200
-
 def main():
     entry = get_latest_journal_entry()
     if not entry:
@@ -114,21 +93,20 @@ def main():
     prompt = generate_prompt(entry, date_str)
     log_debug("📨 GPT Prompt:\n" + prompt)
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=900
-        )
-        summary = response.choices[0].message.content.strip()
-        success = update_summary_field(entry["id"], summary)
-        if success:
-            log_debug("✅ GPT-Zusammenfassung gespeichert.")
-        else:
-            log_debug("❌ Fehler beim Speichern der Zusammenfassung.")
-    except Exception as e:
-        log_debug(f"❌ GPT Fehler: {str(e)}")
+    print("🔍 TESTMODE: Generierter Prompt aus Notion-Daten")
+    print("--------------------------------------------------")
+    print(prompt)
+    print("--------------------------------------------------")
+
+    print("📌 Projekte:", extract_rollup_text(entry, "Projects"))
+    print("📌 Bereiche:", extract_rollup_text(entry, "Areas/Resources"))
+    print("🔖 Kategorien Tasks:", extract_rollup_text(entry, "kategorien tasks"))
+    print("🔖 Kategorien Notes:", extract_rollup_text(entry, "kategorien notes"))
+    print("🏷 Tags Notes:", extract_rollup_text(entry, "notes-tags"))
+    print("📂 Typen Notes:", extract_rollup_text(entry, "notes-typ"))
+    print("🧾 Beschreibung Projekte:", extract_rollup_text(entry, "Projectdescription"))
+    print("🧾 Beschreibung Areas:", extract_rollup_text(entry, "Areasdescription"))
+    print("✅ Done (%):", extract_rollup_text(entry, "Done"))
 
 if __name__ == "__main__":
     main()
