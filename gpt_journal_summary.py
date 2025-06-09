@@ -87,9 +87,8 @@ Verfasse nun eine strukturierte Zusammenfassung als Micro-Content mit kleiner 20
 1. Woran wurde inhaltlich gearbeitet?
 2. Gab es erkennbare Schwerpunkte oder Prioritäten (nach Themen, PARA-Typen)? 
 3. Welche Learnings, Trends, Empfehlungen lassich sich ableiten - basierend auf die SChwerpunkte, welche trendige Topics in den Fachbereichen mit Relevanz seiner Aktiväten könnte für den Nutzer künftig interessant sein?
-4. Was lässt sich für künftige Arbeit ableiten?
-5. Kein Bullet-Point-Stil, keine Füllwörter – schreibe fließend, max. 5 Absätze. 
-6. Verzichte auf Füllwörter
+4. Kein Bullet-Point-Stil, keine Füllwörter – schreibe fließend, max. 4 Absätze. 
+5. Verzichte auf Füllwörter
 
 WICHTIG: Der fertige Text darf niemals mehr als 1999 Zeichen (inklusive Leerzeichen) enthalten. Diese Grenze ist strikt einzuhalten, da der Text sonst nicht gespeichert werden kann. Überschreite diese Grenze unter keinen Umständen – kürze gegebenenfalls ab.
 
