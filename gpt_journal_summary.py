@@ -32,29 +32,32 @@ def extract_rollup_text(entry, property_name):
     if property_name not in entry["properties"]:
         print(f"⚠️ Feld nicht gefunden: '{property_name}'")
         return ""
-    
+
     prop = entry["properties"][property_name]
     if prop.get("type") == "rollup":
         rollup = prop.get("rollup", {})
         if rollup.get("type") == "array":
             return ", ".join([
-                v.get("title", [{}])[0].get("text", {}).get("content", "")
-                for v in rollup.get("array", []) if v.get("title")
+                v.get("plain_text")
+                or v.get("name")
+                or v.get("text", {}).get("content", "")
+                or v.get("title", [{}])[0].get("text", {}).get("content", "")
+                for v in rollup.get("array", [])
             ])
         elif rollup.get("type") == "number":
             return str(rollup.get("number", ""))
         elif rollup.get("type") == "rich_text":
             return " ".join([
-                rt.get("text", {}).get("content", "")
-                for rt in rollup.get("rich_text", [])
+                rt.get("text", {}).get("content", "") for rt in rollup.get("rich_text", [])
             ])
-    elif prop.get("type") == "rich_text":
-        return " ".join([
-            rt.get("text", {}).get("content", "")
-            for rt in prop.get("rich_text", [])
-        ])
     elif prop.get("type") == "multi_select":
         return ", ".join([v.get("name", "") for v in prop.get("multi_select", [])])
+    elif prop.get("type") == "rich_text":
+        return " ".join([
+            rt.get("text", {}).get("content", "") for rt in prop.get("rich_text", [])
+        ])
+    elif prop.get("type") == "relation":
+        return ", ".join([r.get("id", "") for r in prop.get("relation", [])])
     return ""
 
 def generate_prompt(entry, date_str):
