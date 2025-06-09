@@ -53,7 +53,7 @@ def generate_prompt(entry, date_str):
 
     return f"""
 Du bist ein Assistent der für die Notion-Umgebung nach PARA (Forte), der für ein tägliches Journal eine thematische Zusammenfassung erstellt.  
-Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkrete, knappe und inhaltlich strukturierte Zusammenfassung** zu schreiben.
+Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkrete, knappe und inhaltlich strukturierte Zusammenfassung** in ICH-Form zu schreiben.
 
 ### Aufgaben:
 {get("textTasks")}
@@ -85,7 +85,7 @@ Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkr
 ---  
 Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
 1. Woran wurde inhaltlich gearbeitet?
-2. Gab es erkennbare Schwerpunkte oder Prioritäten (nach Themen, PARA-Typen)?
+2. Gab es erkennbare Schwerpunkte oder Prioritäten (nach Themen, PARA-Typen)? 
 3. Welche Learnings, Trends, Empfehlungen lassich sich ableiten - basierend auf die SChwerpunkte, welche trendige Topics in den Fachbereichen mit Relevanz seiner Aktiväten könnte für den Nutzer künftig interessant sein?
 4. Was lässt sich für künftige Arbeit ableiten?
 5. Kein Bullet-Point-Stil, keine Füllwörter – schreibe fließend, max. 5 Absätze. 
