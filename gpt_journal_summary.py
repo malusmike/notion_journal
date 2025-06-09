@@ -80,6 +80,10 @@ Der Eintrag im Feld Summary soll beinhalten:
     """
 
 def main():
+    print("📋 Alle Properties im Eintrag:")
+    for k in entry["properties"].keys():
+    print(" -", k)
+
     entry = get_latest_journal_entry()
     if not entry:
         log_debug("⚠️ Kein Journaleintrag gefunden.")
