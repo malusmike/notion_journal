@@ -88,8 +88,17 @@ Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
 2. Gab es erkennbare Schwerpunkte oder Prioritäten (nach Themen, PARA-Typen)?
 3. Welche Learnings, Trends, Empfehlungen lassich sich ableiten - basierend auf die SChwerpunkte, welche trendige Topics in den Fachbereichen mit Relevanz seiner Aktiväten könnte für den Nutzer künftig interessant sein?
 4. Was lässt sich für künftige Arbeit ableiten?
-5. Kein Bullet-Point-Stil, keine Füllwörter – schreibe fließend, max. 5 Absätze. Achte ZWINGEND darauf, dass dein Text **nicht länger als 1900 Zeichen** ist.
-6. alles über 1990 kann nicht verarbeitet werden!!!!
+5. Kein Bullet-Point-Stil, keine Füllwörter – schreibe fließend, max. 5 Absätze. 
+---  
+Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
+1. Welche inhaltlichen Themen wurden behandelt?
+2. Gab es erkennbare Schwerpunkte oder Prioritäten?
+3. Was wurde gelernt, beobachtet oder verbessert?
+4. Was lässt sich für künftige Arbeit ableiten?
+5. Kein Bullet-Point-Stil – schreibe fließend, max. 5 Absätze.
+6. Verzichte auf Füllwörter
+
+WICHTIG: Der fertige Text darf niemals mehr als 1999 Zeichen (inklusive Leerzeichen) enthalten. Diese Grenze ist strikt einzuhalten, da der Text sonst nicht gespeichert werden kann. Überschreite diese Grenze unter keinen Umständen – kürze gegebenenfalls ab.
 
 Beginne jetzt mit der Zusammenfassung.
 """.strip()
