@@ -52,7 +52,7 @@ def generate_prompt(entry, date_str):
     def get(name): return extract_rollup_text(entry, name)
 
     return f"""
-Du bist ein Assistent, der für ein tägliches Journal eine thematische Zusammenfassung erstellt.  
+Du bist ein Assistent der für die Notion-Umgebung nach PARA (Forte), der für ein tägliches Journal eine thematische Zusammenfassung erstellt.  
 Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkrete, knappe und inhaltlich strukturierte Zusammenfassung** zu schreiben.
 
 ### Aufgaben:
@@ -84,15 +84,14 @@ Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkr
 
 ---  
 Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
-1. Welche inhaltlichen Themen wurden behandelt?
-2. Gab es erkennbare Schwerpunkte oder Prioritäten?
-3. Was wurde gelernt, beobachtet oder verbessert?
+1. Woran wurde inhaltlich gearbeitet?
+2. Gab es erkennbare Schwerpunkte oder Prioritäten (nach Themen, PARA-Typen)?
+3. Welche Learnings, Trends, Empfehlungen lassich sich ableiten - basierend auf die SChwerpunkte, welche trendige Topics in den Fachbereichen mit Relevanz seiner Aktiväten könnte für den Nutzer künftig interessant sein?
 4. Was lässt sich für künftige Arbeit ableiten?
-5. Kein Bullet-Point-Stil – schreibe fließend, max. 5 Absätze.
+5. Kein Bullet-Point-Stil – schreibe fließend, max. 5 Absätze. nicht mehr als 1990 zeichen
 
 Beginne jetzt mit der Zusammenfassung.
 """.strip()
-
 
 def update_summary(entry_id, summary_text):
     url = f"https://api.notion.com/v1/pages/{entry_id}"
@@ -106,7 +105,11 @@ def update_summary(entry_id, summary_text):
         }
     }
     res = requests.patch(url, json=payload, headers=HEADERS)
-    res.raise_for_status()
+    if res.status_code != 200:
+        print("❌ Fehler beim Schreiben in Notion:")
+        print("Status:", res.status_code)
+        print("Response:", res.text)
+        res.raise_for_status()
     print("✅ Zusammenfassung in Notion gespeichert.")
 
 def main():
