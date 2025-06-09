@@ -28,7 +28,7 @@ def get_latest_journal_entry():
         "Content-Type": "application/json",
     }
     payload = {
-        "sorts": [{"property": "Date", "direction": "descending"}],
+        "sorts": [{"timestamp": "last_edited_time", "direction": "descending"}],
         "page_size": 1
     }
     res = requests.post(url, json=payload, headers=headers)
@@ -55,15 +55,15 @@ def main():
         print("❌ Kein Journaleintrag gefunden.")
         return
 
-    date_str = entry["properties"].get("Date", {}).get("date", {}).get("start", "")
-    if not date_str:
-        log_debug("⚠️ Kein Datum im Journaleintrag gefunden.")
-        print("❌ Kein Datum im Journaleintrag gefunden.")
-        return
+    # Titel zur Sicherheit anzeigen
+    name = entry["properties"].get("Name", {}).get("title", [])
+    title = name[0]["text"]["content"] if name else "[kein Titel]"
 
-    # Neue GPT-kompatible Felder
-    print(f"\n📅 Journaleintrag vom {date_str}")
-    print("🧾 Inhalte aus vorbereiteten Textfeldern (Notion):\n")
+    date_str = entry["properties"].get("Date", {}).get("date", {}).get("start", "Kein Datum")
+
+    print(f"\n📅 Geladener Eintrag: {title}")
+    print(f"📆 Datum: {date_str}")
+    print("\n🧾 Inhalte aus vorbereiteten Textfeldern (Notion):\n")
 
     fields = [
         "textTasks", "textNotes", "textProjects", "textAreas",
