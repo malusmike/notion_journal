@@ -17,6 +17,7 @@ DB_NOTIZEN      = os.getenv("DB_NOTIZEN")
 
 # 🔑 GPT-Client initialisieren
 client = OpenAI(api_key=OPENAI_API_KEY)
+DEBUG_LOG_FILE = "gpt_summary_debug.txt"
 
 
 def log_debug(text):
