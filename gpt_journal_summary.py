@@ -74,13 +74,17 @@ def main():
     print(f"📅 Journaleintrag für: {date_str}")
     print("---------------------------")
 
-    # Liste der Felder testen
+    # ⚠️ Wichtig: Korrekte API-Feldnamen laut Debug
     fields_to_check = [
-        "Projects", "Areas/Resources",
-        "kategorien tasks", "kategorien notes",
-        "notes-tags", "notes-typ",
-        "Projectdescription", "Areasdescription",
-        "Done"
+        "Projects",
+        "Areas/Resources",
+        "kategorien tasks",
+        "kategorien notes",
+        "notes-tags",
+        "notes-typ",
+        "Projectdescription",
+        "Areasdescription",
+        "Done:"  # <- wichtig!
     ]
 
     for field in fields_to_check:
