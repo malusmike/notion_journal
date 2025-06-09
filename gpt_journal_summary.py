@@ -139,7 +139,8 @@ def main():
             {"role": "system", "content": "Du bist ein effizienter Schreiber für Tagesjournale."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.5
+        temperature=0.4,
+        max_tokens=650
     )
 
     summary = response.choices[0].message.content.strip()
