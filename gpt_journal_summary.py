@@ -83,7 +83,7 @@ Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkr
 {get("textAreasDescription")}
 
 ---  
-Verfasse nun eine strukturierte Zusammenfassung mit folgenden Schwerpunkten:
+Verfasse nun eine strukturierte Zusammenfassung als Micro-Content mit kleiner 2000 zeichen mit folgenden Schwerpunkten:
 1. Woran wurde inhaltlich gearbeitet?
 2. Gab es erkennbare Schwerpunkte oder Prioritäten (nach Themen, PARA-Typen)? 
 3. Welche Learnings, Trends, Empfehlungen lassich sich ableiten - basierend auf die SChwerpunkte, welche trendige Topics in den Fachbereichen mit Relevanz seiner Aktiväten könnte für den Nutzer künftig interessant sein?
@@ -142,7 +142,7 @@ def main():
             {"role": "user", "content": prompt}
         ],
         temperature=0.4,
-        max_tokens=600
+        max_tokens=520
     )
 
     summary = response.choices[0].message.content.strip()
