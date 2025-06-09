@@ -38,14 +38,19 @@ def get_latest_journal_entry():
 
 def extract_rollup_text(entry, property_name):
     prop = entry.get("properties", {}).get(property_name, {})
-    if prop.get("type") == "rich_text":
+    prop_type = prop.get("type")
+
+    if prop_type == "rich_text":
         return " ".join([rt.get("text", {}).get("content", "") for rt in prop.get("rich_text", [])])
-    elif prop.get("type") == "rollup":
+    elif prop_type == "rollup":
         rollup = prop.get("rollup", {})
         if rollup.get("type") == "rich_text":
             return " ".join([rt.get("text", {}).get("content", "") for rt in rollup.get("rich_text", [])])
         elif rollup.get("type") == "number":
             return str(rollup.get("number", ""))
+    elif prop_type == "formula":
+        formula = prop.get("formula", {})
+        return str(formula.get(formula.get("type"), ""))
     return ""
 
 def main():
@@ -55,7 +60,7 @@ def main():
         print("❌ Kein Journaleintrag gefunden.")
         return
 
-    # Titel zur Sicherheit anzeigen
+    # Titel zur Kontrolle
     name = entry["properties"].get("Name", {}).get("title", [])
     title = name[0]["text"]["content"] if name else "[kein Titel]"
 
@@ -66,10 +71,16 @@ def main():
     print("\n🧾 Inhalte aus vorbereiteten Textfeldern (Notion):\n")
 
     fields = [
-        "textTasks", "textNotes", "textProjects", "textAreas",
-        "textKategorienTasks", "textKategorienNotes",
-        "textTagsNotes", "textTypNotes",
-        "textProjectDescription", "textAreasDescription"
+        "textTasks",
+        "textNotes",
+        "textProjects",
+        "textAreas",
+        "textKategorienTasks",
+        "textKategorienNotes",
+        "textTagsNotes",
+        "textTypNotes",
+        "textProjectDescription",
+        "textAreasDescription"
     ]
 
     for field in fields:
