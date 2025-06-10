@@ -52,8 +52,10 @@ def generate_prompt(entry, date_str):
     def get(name): return extract_rollup_text(entry, name)
 
     return f"""
-Du bist ein Assistent der für die Notion-Umgebung nach PARA (Forte), der für ein tägliches Journal eine thematische Zusammenfassung erstellt.  
+Du bist ein präziser Assistent in Notion (nach PARA/Forte).
+Erstelle auf Basis des Journal-Eintrags vom {date_str} eine kurze, konkrete und thematisch gegliederte Tageszusammenfassung in ICH-Form.
 Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkrete, knappe und inhaltlich strukturierte Zusammenfassung** in ICH-Form zu schreiben.
+
 
 ### Aufgaben:
 {get("textTasks")}
@@ -83,16 +85,17 @@ Nutze die folgenden Inhalte des Journal-Eintrags vom {date_str}, um eine **konkr
 {get("textAreasDescription")}
 
 ---  
-Verfasse nun eine strukturierte Zusammenfassung als Micro-Content mit kleiner 2000 zeichen mit folgenden Schwerpunkten:
-1. Woran wurde inhaltlich gearbeitet?
-2. Gab es erkennbare Schwerpunkte oder Prioritäten (nach Themen, PARA-Typen)? 
-3. Welche Learnings, Trends, Empfehlungen lassich sich ableiten - basierend auf die SChwerpunkte, welche trendige Topics in den Fachbereichen mit Relevanz seiner Aktiväten könnte für den Nutzer künftig interessant sein?
-4. Kein Bullet-Point-Stil, keine Füllwörter – schreibe fließend, max. 4 Absätze. 
-5. Verzichte auf Füllwörter
+Verfasse nun eine strukturierte Zusammenfassung als Micro-Content mit kleiner 2000 zeichen (kleiner 2000 Zeichen) mit folgenden Schwerpunkten:
+1. Woran habe ich gearbeitet?
+2. Welche Schwerpunkte oder Muster (z. B. bestimmte PARA-Typen, Themen) zeigten sich?
+3. Was habe ich daraus gelernt oder erkannt – auch in Bezug auf zukünftige Trends oder nächste Schritte?
+4. keine Füllwörter – schreibe fließend, max. 4 Absätze. 
+5. Verzichte auf Füllwörter, kein Geschwafel
 
-WICHTIG: Der fertige Text darf niemals mehr als 1999 Zeichen (inklusive Leerzeichen) enthalten. Diese Grenze ist strikt einzuhalten, da der Text sonst nicht gespeichert werden kann. Überschreite diese Grenze unter keinen Umständen – kürze gegebenenfalls ab.
+Beginne direkt mit der ICH-Forme und jetzt mit der Zusammenfassung.
+Falls der Output länger als 1999 Zeichen ist, kürze ihn automatisch so, dass er innerhalb des Limits bleibt, ohne an Klarheit zu verlieren.
 
-Beginne jetzt mit der Zusammenfassung.
+
 """.strip()
 
 def update_summary(entry_id, summary_text):
