@@ -8,6 +8,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+  env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      DB_JOURNAL: ${{ secrets.DB_JOURNAL }}
 
     steps:
       - name: Checkout repository
