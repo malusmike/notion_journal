@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 from openai import OpenAI
 import requests
 
+# Wenn du keine .env nutzt, kannst du die Debug-Datei hier hartcodieren:
+DEBUG_LOG_FILE = "journal_debug.log"
+
 # Lokale .env laden
 if os.path.exists(".env"):
     load_dotenv()
