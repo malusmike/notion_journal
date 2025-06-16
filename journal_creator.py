@@ -22,6 +22,20 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
+
+# Debug-Ausgaben direkt in die Action-Logs
+print("=== DEBUG START ===")
+print(f"DB_JOURNAL: {DB_JOURNAL}")
+print(f"DB_TASKS:   {DB_TASKS}")
+print(f"DB_NOTIZEN: {DB_NOTIZEN}")
+
+today  = datetime.utcnow().date()
+target = today - timedelta(days=1)
+print(f"Target date: {target}")
+
+# … dein Code, der tasks/notes holt …
+
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
