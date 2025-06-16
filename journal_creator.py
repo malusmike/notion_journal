@@ -1,11 +1,7 @@
 import os
-from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-from openai import OpenAI
+from dotenv import load_dotenv
 import requests
-
-# Wenn du keine .env nutzt, kannst du die Debug-Datei hier hartcodieren:
-DEBUG_LOG_FILE = "journal_debug.log"
 
 # Lokale .env laden
 if os.path.exists(".env"):
@@ -22,132 +18,86 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-
-# Debug-Ausgaben direkt in die Action-Logs
-print("=== DEBUG START ===")
-print(f"DB_JOURNAL: {DB_JOURNAL}")
-print(f"DB_TASKS:   {DB_TASKS}")
-print(f"DB_NOTIZEN: {DB_NOTIZEN}")
-
-today  = datetime.utcnow().date()
-target = today - timedelta(days=1)
-print(f"Target date: {target}")
-
-# … dein Code, der tasks/notes holt …
-
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Debug-Log-Datei per ENV-Variable steuerbar, Default journal_debug.txt
+DEBUG_LOG_FILE = os.getenv("DEBUG_LOG_FILE", "journal_debug.txt")
 
 def log_debug(text):
     with open(DEBUG_LOG_FILE, "a", encoding="utf-8") as f:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        f.write(f"[{timestamp}] {text}\n")
+        f.write(text + "\n")
 
-def get_latest_journal_entry():
-    url = "https://api.notion.com/v1/databases/{}/query".format(DB_JOURNAL)
-    headers = {
-        "Authorization": f"Bearer {NOTION_TOKEN}",
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json",
-    }
+def compute_yesterday():
+    now = datetime.now(timezone.utc) + timedelta(hours=4)
+    return (now - timedelta(days=1)).strftime("%Y-%m-%d")
+
+def fetch_notion_db(db_id):
+    results = []
+    has_more = True
+    next_cursor = None
+    while has_more:
+        payload = {"page_size": 100}
+        if next_cursor:
+            payload["start_cursor"] = next_cursor
+        res = requests.post(
+            f"https://api.notion.com/v1/databases/{db_id}/query",
+            headers=HEADERS,
+            json=payload
+        )
+        res_json = res.json()
+        results.extend(res_json.get("results", []))
+        has_more = res_json.get("has_more", False)
+        next_cursor = res_json.get("next_cursor")
+    return results
+
+def get_title_from_item(item):
+    try:
+        return item["properties"]["Name"]["title"][0]["text"]["content"]
+    except Exception:
+        return "(kein Titel)"
+
+def filter_by_created_time(items, date_str):
+    target = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    next_day = target + timedelta(days=1)
+    filtered = []
+    for item in items:
+        created_raw = item.get("created_time")
+        if created_raw:
+            created = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
+            if target <= created < next_day:
+                filtered.append(item)
+    return filtered
+
+def create_journal_entry(date_str, tasks, notes):
+    url = "https://api.notion.com/v1/pages"
     payload = {
-        "sorts": [{"property": "Date", "direction": "descending"}],
-        "page_size": 1
-    }
-    res = requests.post(url, json=payload, headers=headers)
-    res.raise_for_status()
-    results = res.json().get("results", [])
-    return results[0] if results else None
-
-def extract_rollup_text(entry, property_name):
-    prop = entry.get("properties", {}).get(property_name, {})
-    if prop.get("type") == "rollup":
-        rollup = prop.get("rollup", {})
-        if rollup.get("type") == "array":
-            return ", ".join([v.get("title", [{}])[0].get("text", {}).get("content", "") for v in rollup.get("array", []) if v.get("title")])
-        elif rollup.get("type") == "number":
-            return str(rollup.get("number", ""))
-        elif rollup.get("type") == "rich_text":
-            return " ".join([rt.get("text", {}).get("content", "") for rt in rollup.get("rich_text", [])])
-    elif prop.get("type") == "rich_text":
-        return " ".join([rt.get("text", {}).get("content", "") for rt in prop.get("rich_text", [])])
-    return ""
-
-def generate_prompt(entry, date_str):
-    return f""" Zusammenfassung für den {date_str}:
-nutze diese Informationen für den Eintrag: 
-    📌 Projekte: {extract_rollup_text(entry, "Projects")}
-    📌 Bereiche/Ressourcen: {extract_rollup_text(entry, "Areas/Resources")}
-
-    🔖 Kategorien (Tasks): {extract_rollup_text(entry, "kategorien tasks")}
-    🔖 Kategorien (Notes): {extract_rollup_text(entry, "kategorien notes")}
-    🏷 Tags (Notes): {extract_rollup_text(entry, "notes-tags")}
-    📂 Typen (Notes): {extract_rollup_text(entry, "notes-typ")}
-
-    🧾 Beschreibung Projekte: {extract_rollup_text(entry, "Projectdescription")}
-    🧾 Beschreibung Areas/Resources: {extract_rollup_text(entry, "Areasdescription")}
-Der Eintrag im Feld Summary soll beinhalten: 
-    ✅ Erledigte Tasks: {extract_rollup_text(entry, "Done")}% erledigt von der Gesamtanzahl der relevanten für diesen Tag. (ggf. aus dem %-Wert ableiten)
-
-    ➤ Gib eine klare Zusammenfassung mit folgenden Schwerpunkten:
-    - Woran wurde inhaltlich gearbeitet?
-    - Gab es erkennbare thematische Häufungen?
-    - Welche Learnings, Trends oder Empfehlungen lassen sich aus der Aktivität ableiten?
-    - Gliedere in kurze Absätze, kein Bullet-Point-Stil.
-    - Keine Wiederholung einzelner Titel, nur thematische Auswertung.
-    """
-
-def update_summary_field(page_id, summary):
-    url = f"https://api.notion.com/v1/pages/{page_id}"
-    headers = {
-        "Authorization": f"Bearer {NOTION_TOKEN}",
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json",
-    }
-    payload = {
+        "parent": {"database_id": DB_JOURNAL},
         "properties": {
-            "Summary": {
-                "rich_text": [{
-                    "type": "text",
-                    "text": {"content": summary}
-                }]
-            }
+            "Name":   {"title": [{"text": {"content": f"Journal für {date_str}"}}]},
+            "Date":   {"date": {"start": date_str}},
+            "Tasks":  {"relation": [{"id": t["id"]} for t in tasks]},
+            "Notes":  {"relation": [{"id": n["id"]} for n in notes]}
         }
     }
-    res = requests.patch(url, json=payload, headers=headers)
-    res.raise_for_status()
-    return res.status_code == 200
+    response = requests.post(url, headers=HEADERS, json=payload)
+    log_debug("📥 Response von Notion:")
+    log_debug(response.text)
+
+    if response.status_code != 200:
+        log_debug(f"❌ Fehler beim Erstellen des Journals (Statuscode {response.status_code})")
+    else:
+        log_debug("✅ Journal erfolgreich erstellt.")
 
 def main():
-    entry = get_latest_journal_entry()
-    if not entry:
-        log_debug("⚠️ Kein Journaleintrag gefunden.")
-        return
+    if os.path.exists(DEBUG_LOG_FILE):
+        os.remove(DEBUG_LOG_FILE)
 
-    date_str = entry["properties"].get("Date", {}).get("date", {}).get("start", "")
-    if not date_str:
-        log_debug("⚠️ Kein Datum im Journaleintrag gefunden.")
-        return
+    date_str  = compute_yesterday()
+    all_tasks = fetch_notion_db(DB_TASKS)
+    all_notes = fetch_notion_db(DB_NOTIZEN)
 
-    prompt = generate_prompt(entry, date_str)
-    log_debug("📨 GPT Prompt:\n" + prompt)
+    tasks = filter_by_created_time(all_tasks, date_str)
+    notes = filter_by_created_time(all_notes, date_str)
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=900
-        )
-        summary = response.choices[0].message.content.strip()
-        success = update_summary_field(entry["id"], summary)
-        if success:
-            log_debug("✅ GPT-Zusammenfassung gespeichert.")
-        else:
-            log_debug("❌ Fehler beim Speichern der Zusammenfassung.")
-    except Exception as e:
-        log_debug(f"❌ GPT Fehler: {str(e)}")
+    create_journal_entry(date_str, tasks, notes)
 
 if __name__ == "__main__":
     main()
