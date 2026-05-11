@@ -155,16 +155,6 @@ Du bist KEIN Motivationscoach.
 Du bist KEIN klassischer Journal-Assistent.
 Du schreibst KEINEN netten Tagesrückblick.
 
-Du verstehst:
-- PARA nach Tiago Forte
-- Wissensarbeit
-- Produktentwicklung
-- AI-gestützte Systeme
-- strategische Priorisierung
-- operative vs. strategische Arbeit
-- Kontextwechsel
-- Fokusmuster
-
 AUFGABE:
 Erstelle eine kurze, präzise Tagesanalyse.
 Analysiere nur das, was aus den Daten ableitbar ist.
@@ -174,7 +164,7 @@ Du sollst:
 - operative, strategische und organisatorische Arbeit unterscheiden
 - Kontextwechsel oder klare Fokussierung sichtbar machen
 - Output-Relevanz einordnen
-- PARA-Kontext intelligent interpretieren
+- PARA-Kontext nur nutzen, wenn er aus den Daten wirklich relevant ist
 - bei wenig Daten nüchtern bleiben
 
 Du sollst NICHT:
@@ -186,6 +176,7 @@ Du sollst NICHT:
 - einzelne Tasktitel mechanisch wiederholen
 - statistische Roh-Zusammenfassungen schreiben wie „1 Task, 1 Notiz“
 - so tun, als wäre wenig Input ein starker Erkenntnistag
+- PARA loben oder erklären
 
 WENN WENIG DATEN VORHANDEN SIND:
 Schreibe nüchtern, dass der Tag nur schwache Signale enthält.
@@ -212,6 +203,10 @@ Wenn dein Entwurf eine der folgenden Formulierungen enthält, schreibe ihn inter
 - PARA-Prinzip hat sich bewährt
 - reibungslose Geschäftsprozesse
 - Erfolg des Projekts sichern
+- effizienter zu arbeiten
+- Qualität meiner Arbeit
+- Trend
+- langfristig von Vorteil
 
 ERLAUBTER STIL:
 - präzise
@@ -276,6 +271,78 @@ DONE-QUOTE:
 
 Erstelle jetzt ausschließlich die fertige Tagesanalyse.
 """.strip()
+
+
+def contains_forbidden_phrases(text):
+    forbidden_phrases = [
+        "intensiv",
+        "ich habe erkannt",
+        "ich habe gelernt",
+        "hat mir gezeigt",
+        "zukünftig",
+        "für die zukunft",
+        "technologische trends",
+        "nutzerbedürfnisse",
+        "entscheidend ist",
+        "wichtig ist",
+        "wertvolle einblicke",
+        "spannende erkenntnisse",
+        "die analyse zeigte",
+        "das projekt verdeutlicht",
+        "para-prinzip hat sich bewährt",
+        "reibungslose geschäftsprozesse",
+        "erfolg des projekts sichern",
+        "effizienter zu arbeiten",
+        "qualität meiner arbeit",
+        "trend",
+        "langfristig von vorteil"
+    ]
+
+    text_lower = text.lower()
+    return any(phrase in text_lower for phrase in forbidden_phrases)
+
+
+def repair_summary(summary):
+    repair_prompt = f"""
+Der folgende Text verletzt die Stilregeln.
+
+TEXT:
+{summary}
+
+Schreibe ihn neu.
+
+Regeln:
+- keine Ich-Reflexion
+- kein Motivationsstil
+- keine Zukunftspläne
+- keine Trends
+- keine PARA-Lobhudelei
+- keine Wörter wie intensiv, erkannt, gelernt, zukünftig, wichtig, entscheidend
+- maximal 3 kurze Absätze
+- nüchternes Executive Work Log
+- nur Arbeitsstruktur, Fokus, Kontextwechsel und Output-Relevanz
+- keine Bulletpoints
+- keine Überschriften
+- gib ausschließlich die neue Version aus
+""".strip()
+
+    repair_response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": "Du redigierst Texte hart in einen nüchternen analytischen Arbeitsbericht ohne GPT-Floskeln."
+            },
+            {
+                "role": "user",
+                "content": repair_prompt
+            }
+        ],
+        temperature=0.05,
+        max_tokens=420
+    )
+
+    return repair_response.choices[0].message.content.strip()
 
 
 def update_summary(entry_id, summary_text):
@@ -351,6 +418,10 @@ def main():
     )
 
     summary = response.choices[0].message.content.strip()
+
+    if contains_forbidden_phrases(summary):
+        print("⚠️ Output enthält verbotene GPT-Floskeln. Erzeuge nüchternere Version...\n")
+        summary = repair_summary(summary)
 
     print(f"\n🧠 GPT-Antwort ({len(summary)} Zeichen):\n{summary}")
 
