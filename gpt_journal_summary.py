@@ -86,6 +86,7 @@ def extract_rollup_text(entry, property_name):
 
         if rollup_type == "array":
             values = []
+
             for item in rollup.get("array", []):
                 item_type = item.get("type")
 
@@ -129,12 +130,30 @@ def extract_rollup_text(entry, property_name):
     return ""
 
 
+def get_journal_date(entry):
+    date_value = entry.get("properties", {}).get("Date", {}).get("date", {})
+
+    if not date_value:
+        return "Nicht gesetzt. Ignoriere das Datum und analysiere nur die vorhandenen Inhalte."
+
+    return date_value.get("start") or "Nicht gesetzt. Ignoriere das Datum und analysiere nur die vorhandenen Inhalte."
+
+
 def generate_prompt(entry, date_str):
     def get(name):
         return extract_rollup_text(entry, name)
 
     return f"""
-Du analysierst den Arbeitstag vom {date_str} wie ein persönlicher Chief of Staff.
+Du analysierst einen Notion-Journal-Eintrag als persönlicher Chief of Staff.
+
+DATUM:
+{date_str}
+
+ROLLE:
+Du bist ein analytischer Personal-Operating-System-Assistent.
+Du bist KEIN Motivationscoach.
+Du bist KEIN klassischer Journal-Assistent.
+Du schreibst KEINEN netten Tagesrückblick.
 
 Du verstehst:
 - PARA nach Tiago Forte
@@ -146,42 +165,60 @@ Du verstehst:
 - Kontextwechsel
 - Fokusmuster
 
-Du bist KEIN Motivationscoach.
-Du bist KEIN klassischer Journal-Assistent.
-Du schreibst KEINEN netten Tagesrückblick.
+AUFGABE:
+Erstelle eine kurze, präzise Tagesanalyse.
+Analysiere nur das, was aus den Daten ableitbar ist.
 
-Deine Aufgabe:
+Du sollst:
 - tatsächliche Arbeitsschwerpunkte verdichten
-- Muster zwischen Tasks, Notizen, Projekten und Areas erkennen
 - operative, strategische und organisatorische Arbeit unterscheiden
-- Kontextwechsel und Fragmentierung sichtbar machen
+- Kontextwechsel oder klare Fokussierung sichtbar machen
+- Output-Relevanz einordnen
 - PARA-Kontext intelligent interpretieren
 - bei wenig Daten nüchtern bleiben
 
-Sehr wichtig:
-Wenn wenig Informationen vorhanden sind, erfinde keine Tiefe.
-Dann schreibe präzise, dass der Tag nur schwache Signale enthält.
-Keine künstlichen Learnings.
-Keine künstliche Positivität.
-Keine Wiederholung einzelner Tasktitel.
-Keine Aufzählung aller Inhalte.
-Keine statistische Roh-Zusammenfassung wie „1 Task, 1 Notiz“.
-Keine Aussage über Trends, wenn nur ein einzelner Tag analysiert wird.
+Du sollst NICHT:
+- persönliche Learnings erfinden
+- Zukunftspläne formulieren
+- Trends behaupten
+- künstliche Bedeutung erzeugen
+- alle Inhalte aufzählen
+- einzelne Tasktitel mechanisch wiederholen
+- statistische Roh-Zusammenfassungen schreiben wie „1 Task, 1 Notiz“
+- so tun, als wäre wenig Input ein starker Erkenntnistag
 
-Vermeide Formulierungen wie:
-- „Ich habe intensiv gearbeitet“
-- „Ich habe gelernt“
-- „Ein wichtiger Schritt war“
-- „Dies zeigt, dass“
-- „Für die Zukunft“
-- „spannende Erkenntnisse“
-- „wertvolle Einblicke“
+WENN WENIG DATEN VORHANDEN SIND:
+Schreibe nüchtern, dass der Tag nur schwache Signale enthält.
+Verdichte trotzdem, was erkennbar ist.
+Keine Ausschmückung.
 
-Schreibstil:
+VERBOTENE OUTPUT-MUSTER:
+Wenn dein Entwurf eine der folgenden Formulierungen enthält, schreibe ihn intern neu, bevor du antwortest:
+
+- intensiv
+- ich habe erkannt
+- ich habe gelernt
+- hat mir gezeigt
+- zukünftig
+- für die Zukunft
+- technologische Trends
+- Nutzerbedürfnisse
+- entscheidend ist
+- wichtig ist
+- wertvolle Einblicke
+- spannende Erkenntnisse
+- die Analyse zeigte
+- das Projekt verdeutlicht
+- PARA-Prinzip hat sich bewährt
+- reibungslose Geschäftsprozesse
+- Erfolg des Projekts sichern
+
+ERLAUBTER STIL:
 - präzise
 - analytisch
 - nüchtern
-- intelligent
+- klar
+- konkret
 - wie ein internes Executive Work Log
 - maximal 3 kurze Absätze
 - keine Bulletpoints
@@ -189,6 +226,15 @@ Schreibstil:
 - keine Einleitung
 - keine Schlussformel
 - maximal 1.800 Zeichen
+
+FORMALE REGELN:
+- Kein Absatz darf mit „Ich“ beginnen.
+- Verwende „Ich“ insgesamt maximal 2-mal.
+- Keine Selbstreflexion.
+- Keine Motivationssprache.
+- Keine Zukunftsprognosen.
+- Keine künstliche Interpretation.
+- Schreibe nicht schön, sondern exakt.
 
 DATEN DES JOURNAL-EINTRAGS:
 
@@ -228,7 +274,7 @@ ZEITAUFWAND:
 DONE-QUOTE:
 {get(" Done")}
 
-Erstelle jetzt eine präzise Tagesanalyse in Ich-Form, aber ohne jeden Absatz mit „Ich“ zu beginnen.
+Erstelle jetzt ausschließlich die fertige Tagesanalyse.
 """.strip()
 
 
@@ -237,6 +283,7 @@ def update_summary(entry_id, summary_text):
         summary_text = summary_text[:1987].rstrip() + "..."
 
     url = f"https://api.notion.com/v1/pages/{entry_id}"
+
     payload = {
         "properties": {
             "Summary": {
@@ -276,7 +323,7 @@ def main():
         print("❌ Kein Journaleintrag gefunden.")
         return
 
-    date_str = entry["properties"].get("Date", {}).get("date", {}).get("start", "Kein Datum")
+    date_str = get_journal_date(entry)
     entry_id = entry["id"]
 
     prompt = generate_prompt(entry, date_str)
@@ -290,7 +337,8 @@ def main():
                 "role": "system",
                 "content": (
                     "Du bist ein analytischer Personal-Operating-System-Assistent. "
-                    "Du schreibst nüchtern, präzise und ohne generische Journal-Floskeln."
+                    "Du schreibst nüchtern, präzise und ohne generische Journal-Floskeln. "
+                    "Du gibst ausschließlich die fertige Analyse aus."
                 )
             },
             {
@@ -298,8 +346,8 @@ def main():
                 "content": prompt
             }
         ],
-        temperature=0.2,
-        max_tokens=520
+        temperature=0.15,
+        max_tokens=720
     )
 
     summary = response.choices[0].message.content.strip()
