@@ -3,6 +3,8 @@ import requests
 from openai import OpenAI
 from dotenv import load_dotenv
 
+print("🚨 V5 SCRIPT ACTIVE 🚨")
+
 # 🔐 ENV laden
 if os.path.exists(".env"):
     load_dotenv()
